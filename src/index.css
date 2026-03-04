@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #FAFAF7;
+    /* Soft mesh gradient background */
+    background-image:
+      radial-gradient(ellipse at 15% 15%, rgba(167, 243, 208, 0.50) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 8%,  rgba(196, 230, 255, 0.40) 0%, transparent 55%),
+      radial-gradient(ellipse at 65% 85%, rgba(221, 214, 254, 0.28) 0%, transparent 55%),
+      radial-gradient(ellipse at 8%  88%, rgba(167, 243, 208, 0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 50%, rgba(240, 253, 250, 0.60) 0%, transparent 70%);
+    background-attachment: fixed;
+    overflow: hidden;
+  }
+
+  #root {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+}
+
+@layer components {
+  /* ── Glassmorphism card ── */
+  .glass-card {
+    @apply bg-white/60 backdrop-blur-xl border border-white/40
+           shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] rounded-3xl;
+  }
+
+  .glass-card-lg {
+    @apply bg-white/55 backdrop-blur-2xl border border-white/40
+           shadow-[0_16px_48px_0_rgba(31,38,135,0.10)] rounded-3xl;
+  }
+
+  /* ── Top navigation bar ── */
+  .glass-nav {
+    @apply bg-white/70 backdrop-blur-xl border-b border-white/50
+           shadow-[0_2px_16px_0_rgba(31,38,135,0.05)];
+  }
+
+  /* ── Bottom navigation bar ── */
+  .glass-bottom-nav {
+    @apply bg-white/80 backdrop-blur-2xl border-t border-white/50
+           shadow-[0_-4px_24px_0_rgba(31,38,135,0.08)];
+  }
+
+  /* ── Pill tag base ── */
+  .pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1
+           rounded-full text-xs font-semibold tracking-wide
+           border border-white/50;
+  }
+
+  /* ── Emerald trust button ── */
+  .btn-emerald {
+    @apply bg-gradient-to-br from-emerald-500 to-teal-600 text-white
+           font-bold rounded-2xl px-6 py-3 shadow-lg
+           hover:shadow-emerald-200/60 hover:scale-[1.02]
+           active:scale-[0.98] transition-all duration-200;
+  }
+
+  /* ── Crimson danger button ── */
+  .btn-crimson {
+    @apply bg-gradient-to-br from-rose-500 to-red-600 text-white
+           font-bold rounded-2xl px-6 py-3 shadow-lg
+           hover:shadow-rose-200/60 hover:scale-[1.02]
+           active:scale-[0.98] transition-all duration-200;
+  }
+
+  /* ── Scrollable content area (between fixed header/footer) ── */
+  .scroll-area {
+    @apply flex-1 overflow-y-auto overscroll-none;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .scroll-area::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── Soft shimmer animation for loading states ── */
+  .shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── Pulse ring for alert/report button ── */
+  .pulse-ring {
+    animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.55); }
+    70%  { box-shadow: 0 0 0 14px rgba(225, 29, 72, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+  }
+
+  /* ── Slide-up modal animation ── */
+  .modal-enter {
+    animation: modal-slide-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes modal-slide-up {
+    from { opacity: 0; transform: translateY(40px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+  }
+
+  /* ── Fade in ── */
+  .fade-in {
+    animation: fadeIn 0.5s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
