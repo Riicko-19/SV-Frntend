@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     Lock, ShieldCheck, TrendingUp, Star,
     Clock, Percent, IndianRupee, ChevronRight, Sparkles,
+    Users, Loader2,
 } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import PillTag from '../components/PillTag'
@@ -118,7 +119,17 @@ function MiniTrustBar({ score }) {
 }
 
 // ─── Locked Overlay ───────────────────────────────────────────────────────────
-function LockedOverlay({ t, trustScore, onGoToChitHub }) {
+function LockedOverlay({ t, trustScore, onGoToChitHub, setTrustScoreManual }) {
+    const [vouchState, setVouchState] = useState('idle') // 'idle' | 'pinging'
+
+    const handleRequestVouch = () => {
+        if (vouchState !== 'idle') return
+        setVouchState('pinging')
+        setTimeout(() => {
+            setTrustScoreManual(80)
+        }, 2000)
+    }
+
     return (
         <motion.div
             key="locked"
@@ -128,7 +139,7 @@ function LockedOverlay({ t, trustScore, onGoToChitHub }) {
             exit="exit"
             className="h-full flex flex-col overflow-hidden"
         >
-            {/* Blurred loan teasers */}
+            {/* Blurred loan teasers in the background */}
             <div className="relative flex-1 px-4 pt-4 overflow-hidden">
                 {[1, 2, 3].map(i => (
                     <div
@@ -151,36 +162,147 @@ function LockedOverlay({ t, trustScore, onGoToChitHub }) {
 
                 {/* Frosted glass lock overlay */}
                 <div className="lock-overlay">
-                    <div className="flex flex-col items-center gap-4 px-8 py-6 text-center">
+                    <div className="flex flex-col items-center gap-3 px-5 py-5 w-full">
+
+                        {/* Lock icon */}
                         <div
                             className="
-                w-20 h-20 rounded-3xl flex items-center justify-center
-                bg-white/80 backdrop-blur-sm
-                border border-amber-200/60
-                shadow-[0_8px_32px_rgba(245,158,11,0.20)]
-                float-anim
-              "
+                                w-14 h-14 rounded-2xl flex items-center justify-center
+                                bg-white/80 backdrop-blur-sm
+                                border border-amber-200/60
+                                shadow-[0_8px_32px_rgba(245,158,11,0.22)]
+                                float-anim
+                            "
                         >
-                            <Lock size={36} strokeWidth={1.8} className="text-amber-500" />
+                            <Lock size={26} strokeWidth={1.8} className="text-amber-500" />
                         </div>
 
-                        <div>
-                            <h2 className="text-xl font-extrabold text-stone-800 mb-2">{t.lockedTitle}</h2>
-                            <p className="text-sm text-stone-500 leading-relaxed">{t.lockedBody}</p>
+                        {/* Title + body */}
+                        <div className="text-center">
+                            <h2 className="text-lg font-extrabold text-stone-800 mb-1">{t.lockedTitle}</h2>
+                            <p className="text-xs text-stone-500 leading-relaxed">{t.lockedBody}</p>
                         </div>
 
+                        {/* Trust progress bar */}
                         <div className="glass-card-trust w-full px-4 py-3">
                             <MiniTrustBar score={trustScore} />
                         </div>
 
-                        <button
-                            id="go-to-chithub-btn"
-                            onClick={onGoToChitHub}
-                            className="btn-emerald w-full"
-                        >
-                            <TrendingUp size={17} />
-                            {t.lockedCta}
-                        </button>
+                        {/* ── Unlock Pathways panel ── */}
+                        <div className="w-full bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-2xl p-4 flex flex-col gap-3">
+
+                            {/* Panel label */}
+                            <p className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest">
+                                Unlock Pathways
+                            </p>
+
+                            {/* Route A — Standard: Continue Chit Fund */}
+                            <motion.button
+                                whileHover={{ scale: 1.01 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={onGoToChitHub}
+                                className="
+                                    w-full flex items-center justify-between gap-3
+                                    py-3 px-4 rounded-xl
+                                    border border-stone-200/80 bg-white/40
+                                    text-left transition-all duration-200
+                                    hover:bg-emerald-50/50 hover:border-emerald-200/70
+                                "
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-emerald-100/70 flex-shrink-0">
+                                        <TrendingUp size={15} className="text-emerald-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-stone-700">Continue Chit Fund</p>
+                                        <p className="text-[10px] text-stone-400 mt-0.5">Standard path — pay cycles, earn trust</p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={15} className="text-stone-300 flex-shrink-0" />
+                            </motion.button>
+
+                            {/* Route B — Fast-Track: Community Vouch */}
+                            <div
+                                className="
+                                    w-full rounded-xl overflow-hidden
+                                    border border-amber-200/80
+                                    bg-gradient-to-br from-amber-50/90 to-emerald-50/70
+                                    shadow-[0_4px_20px_rgba(245,158,11,0.14)]
+                                "
+                            >
+                                {/* Card header */}
+                                <div className="px-4 pt-3 pb-2">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <Sparkles size={12} className="text-amber-500" />
+                                        <span className="text-[9px] font-extrabold text-amber-600 uppercase tracking-widest">
+                                            Emergency Fast-Track
+                                        </span>
+                                    </div>
+                                    <p className="text-sm font-extrabold text-stone-800 leading-snug">
+                                        Request Community Vouch
+                                    </p>
+                                    <p className="text-[11px] text-stone-500 leading-relaxed mt-1">
+                                        Need emergency capital today? Ask a high-trust SheVest member
+                                        or your NGO leader to vouch for you.
+                                    </p>
+                                </div>
+
+                                {/* Vouch CTA */}
+                                <div className="px-4 pb-3">
+                                    <motion.button
+                                        onClick={handleRequestVouch}
+                                        disabled={vouchState === 'pinging'}
+                                        whileHover={vouchState === 'idle' ? { scale: 1.02 } : {}}
+                                        whileTap={vouchState === 'idle' ? { scale: 0.97 } : {}}
+                                        className={`
+                                            w-full flex items-center justify-center gap-2
+                                            py-2.5 rounded-xl text-sm font-bold
+                                            transition-all duration-300
+                                            ${
+                                                vouchState === 'pinging'
+                                                    ? 'bg-amber-100/80 text-amber-600 border border-amber-200/60 cursor-not-allowed'
+                                                    : 'bg-gradient-to-r from-amber-400 to-emerald-500 text-white shadow-[0_4px_16px_rgba(16,185,129,0.28)] hover:shadow-[0_6px_22px_rgba(16,185,129,0.38)]'
+                                            }
+                                        `}
+                                    >
+                                        <AnimatePresence mode="wait" initial={false}>
+                                            {vouchState === 'pinging' ? (
+                                                <motion.span
+                                                    key="pinging"
+                                                    initial={{ opacity: 0, y: 6 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -6 }}
+                                                    transition={{ duration: 0.18 }}
+                                                    className="flex items-center gap-2"
+                                                >
+                                                    <motion.span
+                                                        animate={{ rotate: 360 }}
+                                                        transition={{ repeat: Infinity, duration: 0.85, ease: 'linear' }}
+                                                        className="inline-flex"
+                                                    >
+                                                        <Loader2 size={15} />
+                                                    </motion.span>
+                                                    Pinging local SHG…
+                                                </motion.span>
+                                            ) : (
+                                                <motion.span
+                                                    key="idle"
+                                                    initial={{ opacity: 0, y: 6 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -6 }}
+                                                    transition={{ duration: 0.18 }}
+                                                    className="flex items-center gap-2"
+                                                >
+                                                    <Users size={15} />
+                                                    Request Vouch
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             </div>
@@ -342,7 +464,7 @@ function UnlockedMarketplace({ t }) {
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 export default function P2PMarketplace() {
-    const { t, trustScore, isP2PUnlocked } = useApp()
+    const { t, trustScore, isP2PUnlocked, setTrustScoreManual } = useApp()
     const navigate = useNavigate()
 
     return (
@@ -356,6 +478,7 @@ export default function P2PMarketplace() {
                         t={t}
                         trustScore={trustScore}
                         onGoToChitHub={() => navigate('/chithub')}
+                        setTrustScoreManual={setTrustScoreManual}
                     />
                 )}
             </AnimatePresence>

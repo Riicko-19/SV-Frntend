@@ -1,15 +1,17 @@
 /**
  * context/AppContext.jsx
  * ─────────────────────────────────────────────────────────────────────────────
- * AGENT 2 — SheVest Global State
+ * SheVest Global State
  *
  * Manages:
- *   · language          — 'EN' | 'HI'  (toggle for bilingual PWA)
- *   · trustScore        — 0–100        (derived from chit participation)
- *   · chitCyclesCompleted — 0–N        (completed ROSCA cycles)
+ *   · language            — 'EN' | 'HI'
+ *   · trustScore          — 0–100  (chit participation derived)
+ *   · chitCyclesCompleted — 0–N
+ *   · isAuthenticated     — boolean
+ *   · userRole            — 'borrower' | 'ngo_admin' | null
  *
- * The P2P Marketplace is gated at trustScore >= 80.
- * Every paid installment increments the score via `recordInstallmentPaid()`.
+ * Auth actions:  login(role)  |  logout()  |  toggleRole()
+ * Demo actions:  setTrustScoreManual(n)
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -212,6 +214,10 @@ export function AppProvider({ children }) {
     const [chitCyclesCompleted, setChitCycles] = useState(0)
     const [installmentsPaidThisCycle, setInstPaid] = useState(3) // demo mid-cycle
 
+    // ── Auth state ───────────────────────────────────────────────────────────────
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [userRole, setUserRole] = useState(null) // 'borrower' | 'ngo_admin'
+
     // ── Actions ──────────────────────────────────────────────────────────────────
 
     const toggleLang = useCallback(() => {
@@ -249,6 +255,32 @@ export function AppProvider({ children }) {
         setTrustScore(Math.max(0, Math.min(100, score)))
     }, [])
 
+    // ── Auth actions ─────────────────────────────────────────────────────────────
+
+    /**
+     * login(role) — called by Login view (real OTP path) and demo quick-login.
+     * Sets authenticated=true and assigns the user role.
+     */
+    const login = useCallback((role) => {
+        setUserRole(role)
+        setIsAuthenticated(true)
+    }, [])
+
+    /**
+     * logout — clears auth state, resets demo trust score.
+     */
+    const logout = useCallback(() => {
+        setIsAuthenticated(false)
+        setUserRole(null)
+    }, [])
+
+    /**
+     * toggleRole — used by DemoGodMode to swap roles during a live pitch.
+     */
+    const toggleRole = useCallback(() => {
+        setUserRole(prev => prev === 'borrower' ? 'ngo_admin' : 'borrower')
+    }, [])
+
     // ── Derived state ────────────────────────────────────────────────────────────
 
     const isP2PUnlocked = trustScore >= P2P_TRUST_GATE
@@ -264,10 +296,19 @@ export function AppProvider({ children }) {
         chitCyclesCompleted,
         installmentsPaidThisCycle,
 
+        // Auth state
+        isAuthenticated,
+        userRole,
+
         // Actions
         toggleLang,
         recordInstallmentPaid,
         setTrustScoreManual,
+
+        // Auth actions
+        login,
+        logout,
+        toggleRole,
 
         // Derived
         isP2PUnlocked,
@@ -281,7 +322,9 @@ export function AppProvider({ children }) {
         TRUST_PER_INSTALLMENT,
     }), [
         lang, trustScore, chitCyclesCompleted, installmentsPaidThisCycle,
+        isAuthenticated, userRole,
         toggleLang, recordInstallmentPaid, setTrustScoreManual,
+        login, logout, toggleRole,
         isP2PUnlocked, installmentsLeft, cycleProgress, t,
     ])
 
