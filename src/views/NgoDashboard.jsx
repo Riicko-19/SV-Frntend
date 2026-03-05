@@ -30,6 +30,7 @@ import {
   X,
   UserCheck,
   Building2,
+  Handshake,
 } from 'lucide-react';
 import GlassCard    from '../components/atoms/GlassCard';
 import PillTag      from '../components/atoms/PillTag';
@@ -96,6 +97,55 @@ const STATS = [
   { label: 'Verified',    value: 17, icon: ShieldCheck,  color: 'text-emerald-600'},
   { label: 'Active Chits',value: 6,  icon: Users,        color: 'text-stone-600'  },
 ];
+
+// ── Mock vouch requests ───────────────────────────────────────────────────────
+const INITIAL_VOUCH_REQUESTS = [
+  {
+    id: 'v1',
+    name: 'Kavita Devi',
+    city: 'Jaipur',
+    currentScore: 58,
+    requestedPts: 80,
+    reason: 'Emergency capital for medical expense',
+    chitGroup: 'Jaipur Artisans Circle',
+  },
+];
+
+// ── Vouch request row ─────────────────────────────────────────────────────────
+function VouchRequestRow({ req, onApprove, approving }) {
+  return (
+    <GlassCard padding="p-4" className="border-l-4 border-l-amber-400">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-200 to-amber-400 flex items-center justify-center flex-shrink-0">
+          <span className="text-sm font-bold text-amber-900">{req.name.charAt(0)}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-stone-800">{req.name}</p>
+          <p className="text-xs text-stone-500 mb-1">{req.city} · {req.chitGroup}</p>
+          <p className="text-[11px] text-stone-600 leading-relaxed italic">"{req.reason}"</p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[10px] font-bold text-stone-500">
+              Score: <span className="text-amber-600">{req.currentScore}</span>
+              <span className="text-stone-400"> → </span>
+              <span className="text-emerald-600">{req.requestedPts} pts</span>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="mt-3">
+        <ActionButton
+          variant="emerald"
+          className="w-full justify-center text-xs"
+          isLoading={approving === req.id}
+          onClick={() => onApprove(req.id)}
+        >
+          <Handshake size={14} strokeWidth={2} aria-hidden="true" />
+          Approve Vouch
+        </ActionButton>
+      </div>
+    </GlassCard>
+  );
+}
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 function StatCard({ icon: Icon, label, value, color }) {
@@ -280,6 +330,16 @@ export default function NgoDashboard() {
   const [approvingId, setApprovingId]   = useState(null);
   const [overrideTarget, setOverrideTarget] = useState(null); // user object
   const [overridingId, setOverridingId] = useState(null);
+  const [vouchRequests, setVouchRequests] = useState(INITIAL_VOUCH_REQUESTS);
+  const [approvingVouchId, setApprovingVouchId] = useState(null);
+
+  // ── Vouch approval ───────────────────────────────────────────────────────
+  const handleApproveVouch = async (reqId) => {
+    setApprovingVouchId(reqId);
+    await new Promise((r) => setTimeout(r, 1400));
+    setVouchRequests((prev) => prev.filter((v) => v.id !== reqId));
+    setApprovingVouchId(null);
+  };
 
   // ── KYC approval ────────────────────────────────────────────────────────
   const handleApproveKyc = async (userId) => {
@@ -356,6 +416,32 @@ export default function NgoDashboard() {
                 onOverrideDevice={setOverrideTarget}
                 approving={approvingId}
                 overriding={overridingId}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* ── Pending Vouch Requests ──────────────────────────────────── */}
+        <div className="mt-8 mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-stone-700 uppercase tracking-wide">
+            Pending Vouch Requests
+          </h2>
+          <PillTag colorType="warning" label={`${vouchRequests.length} pending`} />
+        </div>
+
+        {vouchRequests.length === 0 ? (
+          <GlassCard padding="p-6" className="text-center">
+            <CheckCircle2 size={28} className="text-emerald-400 mx-auto mb-2" strokeWidth={1.5} />
+            <p className="text-sm font-semibold text-stone-700">No pending vouches</p>
+          </GlassCard>
+        ) : (
+          <div className="space-y-3">
+            {vouchRequests.map((req) => (
+              <VouchRequestRow
+                key={req.id}
+                req={req}
+                onApprove={handleApproveVouch}
+                approving={approvingVouchId}
               />
             ))}
           </div>

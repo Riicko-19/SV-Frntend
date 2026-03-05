@@ -119,7 +119,7 @@ function MiniTrustBar({ score }) {
 }
 
 // ─── Locked Overlay ───────────────────────────────────────────────────────────
-function LockedOverlay({ t, trustScore, onGoToChitHub, setTrustScoreManual }) {
+function LockedOverlay({ t, trustScore, onGoToChitHub, setTrustScoreManual, userRole }) {
     const [vouchState, setVouchState] = useState('idle') // 'idle' | 'pinging'
 
     const handleRequestVouch = () => {
@@ -221,7 +221,8 @@ function LockedOverlay({ t, trustScore, onGoToChitHub, setTrustScoreManual }) {
                                 <ChevronRight size={15} className="text-stone-300 flex-shrink-0" />
                             </motion.button>
 
-                            {/* Route B — Fast-Track: Community Vouch */}
+                            {/* Route B — Fast-Track: Community Vouch (borrower only) */}
+                            {userRole !== 'ngo_admin' && (
                             <div
                                 className="
                                     w-full rounded-xl overflow-hidden
@@ -301,6 +302,7 @@ function LockedOverlay({ t, trustScore, onGoToChitHub, setTrustScoreManual }) {
                                     </motion.button>
                                 </div>
                             </div>
+                            )}
 
                         </div>
                     </div>
@@ -464,7 +466,7 @@ function UnlockedMarketplace({ t }) {
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 export default function P2PMarketplace() {
-    const { t, trustScore, isP2PUnlocked, setTrustScoreManual } = useApp()
+    const { t, trustScore, isP2PUnlocked, setTrustScoreManual, userRole } = useApp()
     const navigate = useNavigate()
 
     return (
@@ -479,6 +481,7 @@ export default function P2PMarketplace() {
                         trustScore={trustScore}
                         onGoToChitHub={() => navigate('/chithub')}
                         setTrustScoreManual={setTrustScoreManual}
+                        userRole={userRole}
                     />
                 )}
             </AnimatePresence>

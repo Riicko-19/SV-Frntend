@@ -116,7 +116,7 @@ export default function AutoFirReviewModal({
             aria-modal="true"
             aria-labelledby="fir-modal-title"
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden bg-white/70 backdrop-blur-xl border border-rose-200/50 rounded-3xl shadow-xl shadow-rose-900/10"
+            className="relative w-full max-w-[95vw] sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden bg-white/70 backdrop-blur-xl border border-rose-200/50 rounded-3xl shadow-xl shadow-rose-900/10"
           >
             {/* ── Header ────────────────────────────────────────────────── */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-rose-100/60 flex-shrink-0">

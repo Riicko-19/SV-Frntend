@@ -210,7 +210,7 @@ export const P2P_TRUST_GATE = 80
 export function AppProvider({ children }) {
     // ── Core state ──────────────────────────────────────────────────────────────
     const [lang, setLang] = useState('EN')
-    const [trustScore, setTrustScore] = useState(35)   // realistic demo start
+    const [trustScore, setTrustScore] = useState(20)   // new registrant baseline
     const [chitCyclesCompleted, setChitCycles] = useState(0)
     const [installmentsPaidThisCycle, setInstPaid] = useState(3) // demo mid-cycle
 
