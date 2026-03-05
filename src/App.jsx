@@ -1,96 +1,105 @@
-import { createContext, useContext, useState } from 'react'
+/**
+ * App.jsx
+ * ─────────────────────────────────────────────────────────────────────────────
+ * AGENT 2 — SheVest App Shell & Router
+ *
+ * Route Map:
+ *   /            → redirect → /chithub
+ *   /chithub     → ChitHub     (Save & Prove)
+ *   /p2p         → P2PMarketplace (Borrow & Grow)
+ *   /legal       → LegalChat   (AI Legal Bodyguard)
+ *
+ * Shell: PWA phone-sized container (max-w-md, h-screen)
+ *   Fixed glass header (B2BHeader) + scrollable content + fixed BottomNav
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AppProvider } from './context/AppContext'
 import BottomNav from './components/BottomNav'
-import Dashboard from './views/Dashboard'
-import Marketplace from './views/Marketplace'
-import LegalBodyguard from './views/LegalBodyguard'
+import B2BHeader from './components/B2BHeader'
 
-// ── Language Context ────────────────────────────────────────────────────────
-export const LanguageContext = createContext({
-    lang: 'EN',
-    toggleLang: () => { },
-})
+// ─── Lazy-load views for code-splitting ──────────────────────────────────────
+const ChitHub = lazy(() => import('./views/ChitHub'))
+const P2PMarketplace = lazy(() => import('./views/P2PMarketplace'))
+const LegalChat = lazy(() => import('./views/LegalChat'))
 
-export const useLanguage = () => useContext(LanguageContext)
-
-// ── Translation Map ─────────────────────────────────────────────────────────
-export const T = {
-    EN: {
-        activeCapital: 'Active Capital',
-        trustScore: 'Trust Score',
-        loansFunded: 'Loans Funded',
-        repaymentRate: 'Repayment Rate',
-        memberSince: 'Member Since',
-        marketplace: 'Community',
-        dashboard: 'Ledger',
-        legal: 'Legal Shield',
-        listView: 'List View',
-        mapView: 'Map View',
-        fundLoan: 'Fund This Loan',
-        reportThreat: '🚨 Report Threat',
-        chatPlaceholder: 'Type a message…',
-        autoTranslated: 'Auto-translated from Hindi',
-        firAnalysis: '🔍 Gemini Auto-FIR Analysis in Progress…',
-        downloadPdf: '↓ Download Legal PDF',
-        closeModal: '✕ Close',
-        days: 'Days Active',
-        sought: 'Seeks',
-        verified: '✓ Verified',
-        sendMessage: 'Send',
-    },
-    HI: {
-        activeCapital: 'सक्रिय पूंजी',
-        trustScore: 'विश्वास स्कोर',
-        loansFunded: 'वित्तित ऋण',
-        repaymentRate: 'पुनर्भुगतान दर',
-        memberSince: 'सदस्य तब से',
-        marketplace: 'समुदाय',
-        dashboard: 'खाता बही',
-        legal: 'कानूनी ढाल',
-        listView: 'सूची दृश्य',
-        mapView: 'मानचित्र',
-        fundLoan: 'ऋण वित्त करें',
-        reportThreat: '🚨 खतरा रिपोर्ट करें',
-        chatPlaceholder: 'संदेश लिखें…',
-        autoTranslated: 'हिंदी से स्वतः अनुवादित',
-        firAnalysis: '🔍 Gemini Auto-FIR विश्लेषण जारी है…',
-        downloadPdf: '↓ कानूनी PDF डाउनलोड करें',
-        closeModal: '✕ बंद करें',
-        days: 'सक्रिय दिन',
-        sought: 'मांगता है',
-        verified: '✓ सत्यापित',
-        sendMessage: 'भेजें',
-    },
+// ─── Loading Skeleton shown during lazy load ──────────────────────────────────
+function PageSkeleton() {
+    return (
+        <div className="flex-1 flex flex-col gap-4 p-5 overflow-hidden">
+            {[1, 2, 3].map(i => (
+                <div
+                    key={i}
+                    className="glass-card p-5 h-28 relative overflow-hidden"
+                    style={{ animationDelay: `${i * 0.08}s` }}
+                >
+                    <div className="shimmer absolute inset-0 rounded-3xl" />
+                    <div className="h-4 bg-stone-100/80 rounded-full w-2/3 mb-3" />
+                    <div className="h-3 bg-stone-100/60 rounded-full w-1/2" />
+                </div>
+            ))}
+        </div>
+    )
 }
 
-// ── App Root ─────────────────────────────────────────────────────────────────
+// ─── App Root ─────────────────────────────────────────────────────────────────
 export default function App() {
-    const [lang, setLang] = useState('EN')
-    const toggleLang = () => setLang(l => l === 'EN' ? 'HI' : 'EN')
-
     return (
-        <LanguageContext.Provider value={{ lang, toggleLang }}>
+        <AppProvider>
             <BrowserRouter>
-                {/* PWA phone-sized shell */}
-                <div className="relative w-full max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl">
-                    {/* Subtle inner border shimmer */}
-                    <div className="absolute inset-0 pointer-events-none z-50 rounded-none
-                          ring-1 ring-white/20" />
+                {/*
+          PWA phone shell:
+          • max-w-md centers on desktop, fills on mobile
+          • h-screen with overflow-hidden prevents body scroll
+          • flex-col stacks Header → Content → BottomNav
+        */}
+                <div
+                    className="
+            relative w-full max-w-md mx-auto h-screen
+            flex flex-col overflow-hidden
+            shadow-[0_0_80px_rgba(31,38,135,0.12)]
+          "
+                >
+                    {/* ── Subtle inner border shimmer ring (glass effect) ── */}
+                    <div
+                        className="absolute inset-0 pointer-events-none z-50"
+                        style={{
+                            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.22)',
+                            borderRadius: 0,
+                        }}
+                    />
 
-                    {/* Route content fills the middle */}
-                    <div className="flex-1 overflow-hidden relative">
-                        <Routes>
-                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                            <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/market" element={<Marketplace />} />
-                            <Route path="/legal" element={<LegalBodyguard />} />
-                        </Routes>
-                    </div>
+                    {/* ── Fixed white-label partner header ── */}
+                    <B2BHeader />
 
-                    {/* Fixed bottom nav */}
+                    {/* ── Scrollable route content ── */}
+                    <main className="flex-1 overflow-hidden relative">
+                        <Suspense fallback={<PageSkeleton />}>
+                            <Routes>
+                                {/* Default redirect */}
+                                <Route path="/" element={<Navigate to="/chithub" replace />} />
+
+                                {/* Core views */}
+                                <Route path="/chithub" element={<ChitHub />} />
+                                <Route path="/p2p" element={<P2PMarketplace />} />
+                                <Route path="/legal" element={<LegalChat />} />
+
+                                {/* Legacy route aliases (graceful redirect) */}
+                                <Route path="/dashboard" element={<Navigate to="/chithub" replace />} />
+                                <Route path="/market" element={<Navigate to="/p2p" replace />} />
+
+                                {/* 404 fallback */}
+                                <Route path="*" element={<Navigate to="/chithub" replace />} />
+                            </Routes>
+                        </Suspense>
+                    </main>
+
+                    {/* ── Fixed bottom navigation ── */}
                     <BottomNav />
                 </div>
             </BrowserRouter>
-        </LanguageContext.Provider>
+        </AppProvider>
     )
 }

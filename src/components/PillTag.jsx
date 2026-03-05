@@ -1,39 +1,87 @@
 /**
- * PillTag — reusable colorful pill-shaped tag component.
+ * components/PillTag.jsx
+ * ─────────────────────────────────────────────────────────────────────────────
+ * AGENT 3 — Reusable pill / badge atom
  *
  * Props:
- *   color   — tailwind color key: 'emerald' | 'amber' | 'sky' | 'rose' | 'violet' | 'teal'
- *   icon    — React element or emoji string
- *   label   — string text
+ *   color   — 'trust' | 'danger' | 'amber' | 'neutral' | 'info'
+ *   icon    — Lucide icon component (optional)
+ *   label   — string
  *   size    — 'sm' | 'md' (default 'md')
+ *   pulse   — boolean (adds CSS pulse animation)
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 const COLOR_MAP = {
-    emerald: 'bg-emerald-100/80  text-emerald-800  border-emerald-200/60',
-    amber: 'bg-amber-100/80    text-amber-800    border-amber-200/60',
-    sky: 'bg-sky-100/80      text-sky-800      border-sky-200/60',
-    rose: 'bg-rose-100/80     text-rose-800     border-rose-200/60',
-    violet: 'bg-violet-100/80   text-violet-800   border-violet-200/60',
-    teal: 'bg-teal-100/80     text-teal-800     border-teal-200/60',
-    stone: 'bg-stone-100/80    text-stone-600    border-stone-200/60',
-    yellow: 'bg-yellow-100/80   text-yellow-800   border-yellow-200/60',
-    orange: 'bg-orange-100/80   text-orange-800   border-orange-200/60',
+    trust: {
+        wrapper: 'bg-emerald-100/80 text-emerald-800 border-emerald-200/60',
+        dot: 'bg-emerald-500',
+    },
+    danger: {
+        wrapper: 'bg-red-100/80 text-red-700 border-red-200/60',
+        dot: 'bg-red-500',
+    },
+    amber: {
+        wrapper: 'bg-amber-100/80 text-amber-800 border-amber-200/60',
+        dot: 'bg-amber-500',
+    },
+    neutral: {
+        wrapper: 'bg-stone-100/80 text-stone-600 border-stone-200/60',
+        dot: 'bg-stone-400',
+    },
+    info: {
+        wrapper: 'bg-sky-100/80 text-sky-700 border-sky-200/60',
+        dot: 'bg-sky-500',
+    },
 }
 
-export default function PillTag({ color = 'emerald', icon, label, size = 'md' }) {
-    const colorClass = COLOR_MAP[color] ?? COLOR_MAP.emerald
-    const sizeClass = size === 'sm'
-        ? 'px-2 py-0.5 text-[10px] gap-1'
-        : 'px-3 py-1   text-xs     gap-1.5'
+const SIZE_MAP = {
+    sm: 'px-2 py-0.5 text-[10px] gap-1',
+    md: 'px-3 py-1   text-xs     gap-1.5',
+}
+
+export default function PillTag({
+    color = 'neutral',
+    icon: Icon,
+    label,
+    size = 'md',
+    pulse = false,
+    className = '',
+}) {
+    const palette = COLOR_MAP[color] ?? COLOR_MAP.neutral
+    const sizeClass = SIZE_MAP[size] ?? SIZE_MAP.md
 
     return (
-        <span className={`pill ${colorClass} ${sizeClass} backdrop-blur-sm`}>
-            {icon && (
-                typeof icon === 'string'
-                    ? <span className="leading-none">{icon}</span>
-                    : icon
+        <span
+            className={`
+        pill ${palette.wrapper} ${sizeClass}
+        ${pulse ? (color === 'danger' ? 'pulse-ring' : 'pulse-trust') : ''}
+        ${className}
+      `}
+        >
+            {/* Optional leading icon */}
+            {Icon && (
+                <Icon
+                    size={size === 'sm' ? 10 : 12}
+                    strokeWidth={2.2}
+                    aria-hidden="true"
+                    className="flex-shrink-0"
+                />
             )}
-            <span className="font-semibold tracking-wide">{label}</span>
+
+            {/* Optional status dot when no icon */}
+            {!Icon && (
+                <span
+                    className={`
+            w-1.5 h-1.5 rounded-full flex-shrink-0
+            ${palette.dot}
+            ${pulse ? 'animate-pulse' : ''}
+          `}
+                    aria-hidden="true"
+                />
+            )}
+
+            <span className="leading-none">{label}</span>
         </span>
     )
 }

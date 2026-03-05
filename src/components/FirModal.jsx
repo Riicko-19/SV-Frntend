@@ -1,231 +1,390 @@
-import { useState, useEffect } from 'react'
-import { Shield, X, Download, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react'
+/**
+ * components/FirModal.jsx
+ * ─────────────────────────────────────────────────────────────────────────────
+ * AGENT 5 — Auto-FIR Modal (clean ESM rewrite)
+ *
+ * Flow:
+ *   1. Opens deep frosted slate/red modal (glass-fir-modal)
+ *   2. 3-second Gemini analysis simulation (scan-line + step text)
+ *   3. Reveals clinical BNS Section 308(2) FIR draft
+ *   4. Download (txt blob) + Close actions
+ *
+ * Props:
+ *   isOpen    — boolean
+ *   onClose   — () => void
+ *   incident  — string (reporter's text)
+ *   lang      — 'EN' | 'HI'
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
 
-// ── Stage 1: Loading animation ───────────────────────────────────────────────
-function FirLoading() {
-    const [dots, setDots] = useState(0)
+import { useEffect, useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { T } from '../context/AppContext'
+import {
+    ShieldAlert, X, Download, AlertTriangle,
+    CheckCircle2, Scale, Fingerprint, FileText,
+} from 'lucide-react'
+
+// ─── Bilingual FIR content ────────────────────────────────────────────────────
+const FIR_CONTENT = {
+    EN: {
+        ps: 'Cyber Crimes & Financial Fraud Unit, Maharashtra',
+        date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }),
+        section: 'BNS Section 308(2)',
+        offence: 'Extortion — Financial Coercion & Harassment',
+        complainant: 'SheVest Member (ID: SV-2026-XXXX)',
+        accused: 'Unknown party / Illegal recovery agent',
+        narrative:
+            `The complainant, a verified SheVest ROSCA member, reports sustained financial coercion via digital channels:
+
+1. The accused threatened physical harm and social defamation if repayment of a disputed micro-loan was not made within an unreasonably short timeframe.
+
+2. Digital messages recovered indicate language consistent with extortion and criminal intimidation of the complainant's family.
+
+3. The harassment spans both Chit Fund and P2P lending contexts, indicating a coordinated illegal recovery operation.
+
+These acts constitute offences under BNS Section 308(2) — Extortion; IT Act Section 66A (threat via electronic communication); and IPC Section 503 (criminal intimidation).`,
+        relief: 'Immediate FIR registration, seizure of accused communication devices, and an interim protection order for complainant.',
+        disclaimer: 'AI-generated draft by SheVest Legal Engine. Must be reviewed by a licensed advocate before filing.',
+    },
+    HI: {
+        ps: 'साइबर अपराध एवं वित्तीय धोखाधड़ी इकाई, महाराष्ट्र',
+        date: new Date().toLocaleDateString('hi-IN', { day: '2-digit', month: 'long', year: 'numeric' }),
+        section: 'BNS धारा 308(2)',
+        offence: 'जबरन वसूली — वित्तीय दबाव एवं उत्पीड़न',
+        complainant: 'SheVest सदस्य (ID: SV-2026-XXXX)',
+        accused: 'अज्ञात पक्ष / अवैध वसूली एजेंट',
+        narrative:
+            `शिकायतकर्ता, SheVest ROSCA की एक सत्यापित सदस्य, डिजिटल माध्यम से उत्पीड़न की रिपोर्ट करती हैं:
+
+1. आरोपी ने विवादित राशि समय पर न देने पर शारीरिक नुकसान और सामाजिक बदनामी की धमकी दी।
+
+2. शिकायतकर्ता के उपकरणों से प्राप्त संदेश जबरन वसूली की भाषा दर्शाते हैं।
+
+3. यह उत्पीड़न चिट फंड और P2P ऋण दोनों संदर्भों में फैला है।
+
+ये कार्य BNS धारा 308(2), IT अधिनियम धारा 66A और IPC धारा 503 के अंतर्गत अपराध गठित करते हैं।`,
+        relief: 'FIR का तत्काल पंजीकरण, आरोपी के उपकरणों की जब्ती, और शिकायतकर्ता हेतु संरक्षण आदेश।',
+        disclaimer: 'SheVest Legal Engine द्वारा AI-जनित मसौदा। दाखिल करने से पहले लाइसेंस प्राप्त अधिवक्ता द्वारा समीक्षा अनिवार्य है।',
+    },
+}
+
+const ANALYSIS_STEPS = [
+    'Parsing incident keywords…',
+    'Matching BNS 2023 sections…',
+    'Cross-referencing P2P + Chit context…',
+    'Drafting legal narrative…',
+    'Finalising FIR structure…',
+]
+
+// ─── Gemini Loading State ─────────────────────────────────────────────────────
+function GeminiLoader({ t }) {
+    const [stepIdx, setStepIdx] = useState(0)
 
     useEffect(() => {
-        const id = setInterval(() => setDots(d => (d + 1) % 4), 500)
+        const id = setInterval(() => setStepIdx(i => Math.min(i + 1, ANALYSIS_STEPS.length - 1)), 560)
         return () => clearInterval(id)
     }, [])
 
     return (
-        <div className="flex flex-col items-center justify-center py-8 gap-6 fade-in">
-            {/* Animated AI scan ring */}
-            <div className="relative w-24 h-24">
+        <div className="flex flex-col items-center gap-6 py-8 px-4">
+            {/* Pulsing scanner icon */}
+            <div className="relative w-20 h-20">
                 <div className="absolute inset-0 rounded-full border-2 border-red-500/30 animate-ping" />
-                <div className="absolute inset-2 rounded-full border-2 border-red-400/40 animate-ping"
-                    style={{ animationDelay: '0.3s' }} />
-                <div className="w-full h-full rounded-full bg-gradient-to-br from-red-900/60 to-slate-900/80
-                        border border-red-500/50 flex items-center justify-center shadow-[0_0_30px_rgba(220,38,38,0.4)]">
-                    <Loader2 size={32} className="text-red-400 animate-spin" />
+                <div
+                    className="
+            w-20 h-20 rounded-full flex items-center justify-center
+            bg-gradient-to-br from-red-950/80 to-slate-900/80
+            border border-red-500/40
+            shadow-[0_0_40px_rgba(244,63,94,0.40)]
+          "
+                >
+                    <Fingerprint size={34} strokeWidth={1.5} className="text-red-400" />
+                </div>
+                {/* Scan line */}
+                <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                    <div
+                        className="
+              absolute top-0 left-0 right-0 h-0.5
+              bg-gradient-to-r from-transparent via-red-400/80 to-transparent
+              scan-line-anim
+            "
+                    />
                 </div>
             </div>
 
-            {/* Analysis text */}
-            <div className="text-center space-y-2">
-                <p className="text-red-300 font-bold text-base tracking-wide">
-                    🔍 Gemini Auto-FIR Analysis in Progress{'.'.repeat(dots)}
-                </p>
-                <p className="text-slate-400 text-xs">
-                    Scanning chat logs for threat patterns & BNS violations
-                </p>
+            <div className="flex flex-col items-center gap-2">
+                <p className="text-sm font-bold text-red-300 text-center">{t.firLoading}</p>
+                <AnimatePresence mode="wait">
+                    <motion.p
+                        key={stepIdx}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.3 }}
+                        className="text-xs text-slate-400 text-center"
+                    >
+                        {ANALYSIS_STEPS[stepIdx]}
+                    </motion.p>
+                </AnimatePresence>
             </div>
 
-            {/* Progress steps */}
-            <div className="w-full space-y-2 px-2">
-                {[
-                    { label: 'Extracting conversation context', done: true, delay: 0 },
-                    { label: 'Identifying threat language', done: true, delay: 0.3 },
-                    { label: 'Cross-referencing BNS codes', done: false, delay: 0.6 },
-                    { label: 'Drafting legal FIR document', done: false, delay: 0.9 },
-                ].map((step, i) => (
-                    <div key={i} className="flex items-center gap-3"
-                        style={{ animation: `fadeIn 0.4s ease ${step.delay}s both` }}>
-                        {step.done
-                            ? <CheckCircle size={14} className="text-emerald-400 flex-shrink-0" />
-                            : <Loader2 size={14} className="text-red-400 animate-spin flex-shrink-0" />
-                        }
-                        <p className={`text-xs ${step.done ? 'text-slate-300' : 'text-slate-500'}`}>
-                            {step.label}
-                        </p>
-                    </div>
+            <div className="flex items-center gap-1.5">
+                {[0, 1, 2].map(i => (
+                    <span
+                        key={i}
+                        className="typing-dot w-2 h-2 rounded-full bg-red-500/70"
+                        style={{ animationDelay: `${i * 0.2}s` }}
+                    />
                 ))}
             </div>
         </div>
     )
 }
 
-// ── Stage 2: Legal FIR Document ──────────────────────────────────────────────
-function FirDocument() {
+// ─── FIR Draft ────────────────────────────────────────────────────────────────
+function FirDraft({ t, content, onDownload }) {
     return (
-        <div className="fade-in space-y-4">
-            {/* Header badge */}
-            <div className="flex items-center justify-center gap-2 p-3
-                      bg-red-500/20 rounded-2xl border border-red-500/30">
-                <AlertTriangle size={16} className="text-red-400" />
-                <span className="text-red-300 text-xs font-bold uppercase tracking-widest">
-                    Auto-Generated Legal Draft
-                </span>
-                <AlertTriangle size={16} className="text-red-400" />
+        <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="flex flex-col gap-4"
+        >
+            {/* Ready badge */}
+            <div className="flex items-center justify-center gap-2">
+                <CheckCircle2 size={18} className="text-red-400" />
+                <span className="text-sm font-bold text-red-300">{t.firReady}</span>
             </div>
 
-            {/* FIR Document */}
-            <div className="bg-slate-800/60 rounded-2xl border border-red-500/20 p-4 space-y-3
-                      shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-
-                {/* Document title */}
-                <div className="text-center border-b border-red-500/20 pb-3">
-                    <p className="text-red-200 font-black text-sm tracking-widest uppercase">
-                        FIRST INFORMATION REPORT
-                    </p>
-                    <p className="text-slate-400 text-[10px] mt-0.5">
-                        Bharatiya Nagarik Suraksha Sanhita, 2023 | Auto-FIR Draft #2026-03-04
-                    </p>
+            {/* Document card */}
+            <div className="rounded-2xl border border-red-500/20 overflow-hidden bg-slate-950/60">
+                {/* Section header */}
+                <div
+                    className="px-4 py-3 border-b border-red-500/15"
+                    style={{ background: 'rgba(244,63,94,0.08)' }}
+                >
+                    <div className="flex items-start gap-2">
+                        <Scale size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-xs font-extrabold text-red-300 tracking-wider uppercase">
+                                {content.section}
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">{content.offence}</p>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Metadata grid */}
-                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                {/* Meta fields */}
+                <div className="px-4 py-3 space-y-2 border-b border-red-500/10">
                     {[
-                        ['Date', '04 March 2026'],
-                        ['Time', '19:08 IST'],
-                        ['Platform', 'SheVest App (P2P)'],
-                        ['Report ID', 'SHV-FIR-7742'],
-                    ].map(([k, v]) => (
-                        <div key={k} className="bg-slate-700/40 rounded-xl p-2">
-                            <p className="text-slate-500 uppercase tracking-wide text-[9px]">{k}</p>
-                            <p className="text-slate-200 font-semibold mt-0.5">{v}</p>
+                        ['Police Station', content.ps],
+                        ['Date', content.date],
+                        [t.firComplainant, content.complainant],
+                        [t.firAccused, content.accused],
+                    ].map(([label, value]) => (
+                        <div key={label} className="flex gap-2 text-[11px]">
+                            <span className="text-slate-500 font-semibold w-28 flex-shrink-0">{label}:</span>
+                            <span className="text-slate-300 font-medium break-words">{value}</span>
                         </div>
                     ))}
                 </div>
 
-                {/* Complainant */}
-                <div className="bg-slate-700/40 rounded-xl p-3">
-                    <p className="text-[9px] text-slate-500 uppercase tracking-wide mb-1">Complainant</p>
-                    <p className="text-slate-200 text-xs font-semibold">Priya Sharma</p>
-                    <p className="text-slate-400 text-[10px]">Verified SHG Member — UID: SHV-U-0421</p>
+                {/* Narrative */}
+                <div className="px-4 py-3">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                        {t.firIncident}
+                    </p>
+                    <p className="text-[11px] text-slate-300 leading-relaxed whitespace-pre-line">
+                        {content.narrative}
+                    </p>
                 </div>
 
-                {/* Threat Evidence */}
-                <div className="bg-red-900/30 rounded-xl p-3 border border-red-500/20">
-                    <p className="text-[9px] text-red-400 uppercase tracking-wide mb-2 font-bold">
-                        Extracted Threat Evidence
+                {/* Relief */}
+                <div
+                    className="px-4 py-3 border-t border-red-500/10"
+                    style={{ background: 'rgba(244,63,94,0.05)' }}
+                >
+                    <p className="text-[11px] font-bold text-red-400 uppercase tracking-wider mb-1.5">
+                        Relief Sought
                     </p>
-                    <div className="space-y-1.5">
-                        {[
-                            '"Pay ₹2,000 by tonight or I will come to your house."',
-                            '"Your family will face consequences if you ignore me."',
-                        ].map((quote, i) => (
-                            <div key={i} className="flex gap-2 items-start">
-                                <span className="text-red-500 text-xs mt-0.5 flex-shrink-0">▸</span>
-                                <p className="text-red-200 text-[10px] italic leading-relaxed">{quote}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* BNS Violation - highlighted */}
-                <div className="bg-gradient-to-r from-red-900/40 to-rose-900/30 rounded-xl p-3
-                        border border-red-400/30 shadow-[0_0_16px_rgba(220,38,38,0.15)]">
-                    <p className="text-[9px] text-red-400 uppercase tracking-widest mb-2 font-black">
-                        ⚖ Applicable Legal Codes
-                    </p>
-                    <div className="space-y-2">
-                        <div>
-                            <p className="text-red-200 text-xs font-black">BNS Section 308(2) — Extortion</p>
-                            <p className="text-slate-400 text-[10px] leading-relaxed mt-0.5">
-                                Whosoever commits extortion by putting a person in fear of death or grievous
-                                hurt shall be punished with rigorous imprisonment up to 10 years with fine.
-                            </p>
-                        </div>
-                        <div className="h-px bg-red-500/20" />
-                        <div>
-                            <p className="text-red-200 text-xs font-bold">BNS Section 351(2) — Criminal Intimidation</p>
-                            <p className="text-slate-400 text-[10px] leading-relaxed mt-0.5">
-                                Threatening with injury to person, reputation, or property — imprisonment
-                                up to 2 years, fine, or both.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Recommendation */}
-                <div className="bg-emerald-900/20 rounded-xl p-2.5 border border-emerald-500/20">
-                    <p className="text-emerald-400 text-[10px] font-semibold">
-                        ✓ This draft is ready to be submitted at your nearest police station or via the
-                        National Cybercrime Reporting Portal (cybercrime.gov.in).
-                    </p>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">{content.relief}</p>
                 </div>
             </div>
 
-            {/* CTA */}
-            <button
-                onClick={() => alert('PDF generation would be handled by backend in production.')}
-                className="w-full flex items-center justify-center gap-3 py-4
-                   bg-gradient-to-r from-red-600 to-rose-600
-                   text-white font-black rounded-2xl text-sm tracking-wide
-                   shadow-[0_4px_24px_rgba(220,38,38,0.45)]
-                   hover:shadow-[0_6px_32px_rgba(220,38,38,0.6)]
-                   hover:scale-[1.01] active:scale-[0.99]
-                   transition-all duration-200"
-            >
-                <Download size={16} strokeWidth={2.5} />
-                ↓ Download Legal PDF
+            {/* Disclaimer */}
+            <div className="flex items-start gap-2 p-3 rounded-2xl bg-amber-950/40 border border-amber-500/20">
+                <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className="text-[10px] text-amber-300/80 leading-relaxed">{content.disclaimer}</p>
+            </div>
+
+            {/* Download */}
+            <button id="download-fir-btn" onClick={onDownload} className="btn-crimson w-full">
+                <Download size={17} />
+                {t.downloadPdf}
             </button>
-        </div>
+        </motion.div>
     )
 }
 
-// ── Main FIR Modal ───────────────────────────────────────────────────────────
-export default function FirModal({ onClose }) {
-    const [stage, setStage] = useState('loading') // 'loading' | 'document'
+// ─── Main Export ──────────────────────────────────────────────────────────────
+export default function FirModal({ isOpen, onClose, incident, lang = 'EN' }) {
+    const [phase, setPhase] = useState('loading')
+    const timerRef = useRef(null)
+    const tMap = lang === 'HI' ? T.HI : T.EN
+    const firContent = FIR_CONTENT[lang] ?? FIR_CONTENT.EN
 
+    // Reset phase every time modal opens and start 3s timer
     useEffect(() => {
-        const timer = setTimeout(() => setStage('document'), 3000)
-        return () => clearTimeout(timer)
-    }, [])
+        if (isOpen) {
+            setPhase('loading')
+            timerRef.current = setTimeout(() => setPhase('ready'), 3000)
+        }
+        return () => clearTimeout(timerRef.current)
+    }, [isOpen])
+
+    const handleDownload = () => {
+        const text = [
+            'SHEVEST AUTO-FIR DRAFT',
+            '='.repeat(40),
+            `Section : ${firContent.section}`,
+            `Offence : ${firContent.offence}`,
+            `Date    : ${firContent.date}`,
+            `Station : ${firContent.ps}`,
+            '',
+            incident ? `Reporter Statement: "${incident}"` : '',
+            '',
+            firContent.narrative,
+            '',
+            `Relief : ${firContent.relief}`,
+            '',
+            firContent.disclaimer,
+        ].join('\n')
+
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const a = Object.assign(document.createElement('a'), {
+            href: url,
+            download: `SheVest_FIR_${Date.now()}.txt`,
+        })
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+    }
 
     return (
-        /* Backdrop */
-        <div className="absolute inset-0 z-50 flex items-end justify-center p-0"
-            style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-
-            {/* Modal sheet */}
-            <div className="modal-enter w-full max-h-[90vh]
-                      bg-slate-900/85 backdrop-blur-2xl
-                      border-t border-x border-red-500/50
-                      rounded-t-3xl overflow-hidden flex flex-col
-                      shadow-[0_-8px_64px_rgba(220,38,38,0.25)]">
-
-                {/* Modal header */}
-                <div className="flex items-center justify-between px-5 py-4
-                        border-b border-red-500/20 flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-red-500/20 border border-red-500/40
-                            flex items-center justify-center">
-                            <Shield size={16} className="text-red-400" />
-                        </div>
-                        <div>
-                            <p className="text-white font-black text-sm">Legal Bodyguard</p>
-                            <p className="text-red-400 text-[10px] font-semibold">Powered by Gemini AI</p>
-                        </div>
-                    </div>
-                    <button
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    {/* Backdrop */}
+                    <motion.div
+                        key="fir-backdrop"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="fixed inset-0 z-60 bg-slate-950/70 backdrop-blur-sm"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20
-                       flex items-center justify-center transition-colors"
-                    >
-                        <X size={16} className="text-slate-300" />
-                    </button>
-                </div>
+                        aria-hidden="true"
+                    />
 
-                {/* Scrollable content */}
-                <div className="scroll-area p-5">
-                    {stage === 'loading' ? <FirLoading /> : <FirDocument />}
-                    <div className="h-4" />
-                </div>
-            </div>
-        </div>
+                    {/* Modal */}
+                    <motion.div
+                        key="fir-modal"
+                        initial={{ opacity: 0, y: 60, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 40, scale: 0.96 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        className="
+              fixed bottom-0 left-1/2 -translate-x-1/2 z-70
+              w-full max-w-md glass-fir-modal
+              flex flex-col max-h-[88vh]
+            "
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={tMap.firTitle}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-red-500/20 flex-shrink-0">
+                            <div className="flex items-center gap-3">
+                                <span
+                                    className="
+                    w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
+                    bg-gradient-to-br from-red-600 to-red-800
+                    shadow-[0_4px_16px_rgba(244,63,94,0.50)]
+                  "
+                                >
+                                    <ShieldAlert size={18} strokeWidth={2} className="text-white" />
+                                </span>
+                                <div>
+                                    <p className="text-sm font-extrabold text-white leading-none">{tMap.firTitle}</p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">{tMap.firSubtitle}</p>
+                                </div>
+                            </div>
+                            <button
+                                id="close-fir-modal-btn"
+                                onClick={onClose}
+                                className="
+                  w-8 h-8 rounded-xl flex items-center justify-center
+                  text-slate-400 hover:text-white hover:bg-red-500/20
+                  border border-transparent hover:border-red-500/30
+                  transition-all duration-200
+                "
+                                aria-label="Close"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        {/* Incident preview */}
+                        {incident && (
+                            <div className="px-5 pt-3 flex-shrink-0">
+                                <div className="flex items-start gap-2 p-3 rounded-xl border border-red-500/15 bg-red-950/30">
+                                    <FileText size={12} className="text-red-400 flex-shrink-0 mt-0.5" />
+                                    <p className="text-[11px] text-slate-400 italic line-clamp-2">
+                                        "{incident}"
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Body */}
+                        <div className="flex-1 overflow-y-auto scroll-area px-5 py-4">
+                            <AnimatePresence mode="wait">
+                                {phase === 'loading' ? (
+                                    <motion.div
+                                        key="loader"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                    >
+                                        <GeminiLoader t={tMap} />
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="draft"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                    >
+                                        <FirDraft t={tMap} content={firContent} onDownload={handleDownload} />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Close footer */}
+                        <div className="px-5 py-3 border-t border-red-500/15 flex-shrink-0">
+                            <button
+                                onClick={onClose}
+                                className="w-full py-3 rounded-2xl text-slate-300 text-sm font-semibold border border-slate-700/60 hover:bg-slate-800/60 transition-all duration-200"
+                            >
+                                {tMap.closeModal}
+                            </button>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
     )
 }
